@@ -12,52 +12,57 @@ struct ContentView: View {
     @State private var error: Error? = nil
     @State private var keepOn: Bool = true
     @State private var needsURL: Bool = false
-    @State private var needsRefresh: Bool = false
-    
-    @Binding var nsURL: String?
-    @State var defaultURL: String = "https://nightscoutfoundation.org"
-    
     @State private var optionChevronRotation: Double = 0
-    @State private var showOptions: Bool = false
-    
+    @State private var showOptions: Bool = true
+    @State private var nsURL: String = "https://nightscoutfoundation.org"
+    @ObservedObject var viewModel = ViewModel()
     
     let defaults = UserDefaults.standard
     
+    init() {
+        
+    }
+        
     var mainWebView: some View {
-        WebView(title: $title, url: URL(string: nsURL ?? defaultURL)!)
-            .onLoadStatusChanged { loading, error in
-                if loading {
-                    self.title = "Loading…"
-                }
-                else {
-                    if let error = error {
-                        self.error = error
-                        if self.title.isEmpty {
-                            self.title = "Error"
-                        }
-                    }
-                    else if self.title.isEmpty {
-                        self.title = "???"
-                    }
-                }
-            }
+        WebView(url: .publicUrl, viewModel: viewModel)
     }
     
     var enterURL: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Hello! \nPlease enter your Nighscout URL: ")
-            Text("Be sure to include http:// or https://")
+        VStack(alignment: .leading) {
+            Text("Hello!")
+                .fontWeight(/*@START_MENU_TOKEN@*/.bold/*@END_MENU_TOKEN@*/)
+            Text("Please enter your Nighscout URL: ")
+                .fontWeight(.thin)
+            Text("...be sure to include http:// or https://")
+                .padding(.top, 4)
                 .font(.footnote)
+                .foregroundColor(.orange)
             Divider()
-            TextField("Enter URL", text: Binding($nsURL) ?? $defaultURL)
+            TextField("Enter URL", text: $nsURL)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
             Divider()
-            Button("Done", action: {
-                needsURL = false
-                defaults.set(nsURL, forKey: "ns_url")
-            })
+            HStack {
+                Button("Clear", action: {
+                    nsURL = ""
+                })
                 .buttonStyle(StandardButtonStyle())
+                Button("Cancel", action: {
+                    needsURL = false
+                    nsURL = defaults.string(forKey: "ns_url") ?? nsURL
+                })
+                .buttonStyle(StandardButtonStyle())
+                Spacer()
+                Button("Done", action: {
+                    needsURL = false
+                    print(nsURL)
+                    defaults.set(nsURL, forKey: "ns_url")
+                    defaults.synchronize()
+                })
+                .buttonStyle(StandardButtonStyle())
+            }
         }
     }
     
@@ -98,7 +103,7 @@ struct ContentView: View {
                     .buttonStyle(StandardButtonStyle())
                     Spacer()
                     Button("Refresh", action: {
-                        needsRefresh = true
+                        self.viewModel.webViewNavigationPublisher.send(.reload)
                     })
                     .buttonStyle(StandardButtonStyle())
                     Spacer()
@@ -122,32 +127,20 @@ struct ContentView: View {
     var body: some View {
         idleTimerhandler()
         
-        if needsRefresh {
-            DispatchQueue.main.async {
-                needsRefresh.toggle()
-            }
-        }
-        
         return VStack {
             if !needsURL {
-                if !needsRefresh {
-                    mainWebView
-                }
+                mainWebView
                 optionsClusterView
                     .padding()
             }
-
             if needsURL {
                 enterURL
                     .padding()
             }
-        }.onAppear(){
-            if let url = defaults.string(forKey: "ns_url") {
-                DispatchQueue.main.async {
-                    nsURL =  url
-                    needsRefresh.toggle()
-                }
-            }
         }.animation(.interactiveSpring())
+        .onAppear(){
+            nsURL = defaults.string(forKey: "ns_url") ?? nsURL
+            print(nsURL)
+        }
     }
 }
