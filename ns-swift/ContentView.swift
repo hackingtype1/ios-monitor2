@@ -8,17 +8,23 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var title: String = ""
-    @State var error: Error? = nil
-    @State var keepOn: Bool = true
-    @State var needsURL: Bool = false
-    @State var needsRefresh: Bool = false
-    @State var nsURL: String = "https://nightscoutfoundation.org"
+    @State private var title: String = ""
+    @State private var error: Error? = nil
+    @State private var keepOn: Bool = true
+    @State private var needsURL: Bool = false
+    @State private var needsRefresh: Bool = false
+    
+    @Binding var nsURL: String?
+    @State var defaultURL: String = "https://nightscoutfoundation.org"
+    
+    @State private var optionChevronRotation: Double = 0
+    @State private var showOptions: Bool = false
+    
     
     let defaults = UserDefaults.standard
     
     var mainWebView: some View {
-        WebView(title: $title, url: URL(string: nsURL)!)
+        WebView(title: $title, url: URL(string: nsURL ?? defaultURL)!)
             .onLoadStatusChanged { loading, error in
                 if loading {
                     self.title = "Loading…"
@@ -42,10 +48,10 @@ struct ContentView: View {
             Text("Hello! \nPlease enter your Nighscout URL: ")
             Text("Be sure to include http:// or https://")
                 .font(.footnote)
-            
             Divider()
-            TextField("Enter URL", text: $nsURL)
+            TextField("Enter URL", text: Binding($nsURL) ?? $defaultURL)
                 .autocapitalization(.none)
+                .disableAutocorrection(true)
             Divider()
             Button("Done", action: {
                 needsURL = false
@@ -56,33 +62,72 @@ struct ContentView: View {
     }
     
     var optionsClusterView: some View {
-        VStack (spacing: 8) {
-            VolumeSliderView()
-                .frame(height: 40)
-            Divider()
-            HStack(alignment: .center) {
-                Button("Change URL", action: {
-                    needsURL = true
-                })
+        VStack (alignment: .leading, spacing: 4) {
+            Button(action: {
+                showOptions.toggle()
+                if self.showOptions {
+                    self.optionChevronRotation = 90
+                } else {
+                    self.optionChevronRotation = 0
+                }
+            }) {
+                HStack {
+                    Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(optionChevronRotation))
+                        .padding(.leading, 8)
+                    Text(showOptions ? "HIDE OPTIONS" : "SHOW OPTIONS")
+                    Spacer()
+                }
+            }.foregroundColor(.orange)
+            .font(.footnote)
+            if showOptions {
+                Divider()
+                    .padding()
+                HStack {
+                    Image(systemName: "speaker")
+                    Spacer()
+                    Image(systemName: "speaker.wave.2")
+                    Spacer()
+                    Image(systemName: "speaker.wave.3")
+                }.padding(4)
+                VolumeSliderView().frame(height: 40)
+                HStack(alignment: .center) {
+                    Button("Change", action: {
+                        needsURL = true
+                    })
                     .buttonStyle(StandardButtonStyle())
-                Spacer()
-                Button("Refresh Page", action: {
-                    needsRefresh = true
-                })
+                    Spacer()
+                    Button("Refresh", action: {
+                        needsRefresh = true
+                    })
                     .buttonStyle(StandardButtonStyle())
+                    Spacer()
+                    HStack (alignment: .center, spacing: 2) {
+                        VStack(alignment: .trailing) {
+                            Text("SCREEN LOCK")
+                            Text("OVERRIDE")
+                        }.font(.caption2)
+                        Toggle("", isOn: $keepOn).padding(0)
+                            .labelsHidden()
+                    }
+                }
             }
-            Divider()
-            Toggle("Screen Lock Override:", isOn: $keepOn)
-                .toggleStyle(SwitchToggleStyle(tint: .orange))
         }
     }
     
+    func idleTimerhandler() {
+        UIApplication.shared.isIdleTimerDisabled = keepOn
+    }
+    
     var body: some View {
+        idleTimerhandler()
+        
         if needsRefresh {
             DispatchQueue.main.async {
                 needsRefresh.toggle()
             }
         }
+        
         return VStack {
             if !needsURL {
                 if !needsRefresh {
@@ -103,6 +148,6 @@ struct ContentView: View {
                     needsRefresh.toggle()
                 }
             }
-        }
+        }.animation(.interactiveSpring())
     }
 }

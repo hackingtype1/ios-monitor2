@@ -21,7 +21,7 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let view = WKWebView()
         let configuration = view.configuration
-        configuration.mediaTypesRequiringUserActionForPlayback = .audio
+        configuration.mediaTypesRequiringUserActionForPlayback = []
             
         view.navigationDelegate = context.coordinator
         view.load(URLRequest(url: url))

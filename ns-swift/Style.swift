@@ -10,9 +10,12 @@ struct StandardButtonStyle: ButtonStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
             .padding(8)
-            .foregroundColor(Color.white)
-            .background(configuration.isPressed ? Color.gray : .orange)
+            .background(configuration.isPressed ? Color.orange : .clear)
             .font(.callout)
-        .cornerRadius(30)
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.primary, lineWidth: 1)
+            )
     }
 }

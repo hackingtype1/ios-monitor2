@@ -9,10 +9,10 @@ import SwiftUI
 
 @main
 struct ns_swiftApp: App {
-
+    @State private var nsURL: String? = UserDefaults.standard.string(forKey: "ns_url")
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(nsURL: $nsURL)
         }
     }
 }
