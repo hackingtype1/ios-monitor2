@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var title: String = ""
     @State private var error: Error? = nil
-    @State private var keepOn: Bool = true
+    @State var keepOn: Bool = UserDefaults.standard.bool(forKey: "ns_keepOn")
     @State private var needsURL: Bool = false
     @State private var optionChevronRotation: Double = 0
     @State private var showOptions: Bool = true
@@ -19,10 +19,6 @@ struct ContentView: View {
     
     let defaults = UserDefaults.standard
     
-    init() {
-        
-    }
-        
     var mainWebView: some View {
         WebView(url: .publicUrl, viewModel: viewModel)
     }
@@ -114,19 +110,19 @@ struct ContentView: View {
                         }.font(.caption2)
                         Toggle("", isOn: $keepOn).padding(0)
                             .labelsHidden()
+                            .onChange(of: keepOn) { value in
+                                UIApplication.shared.isIdleTimerDisabled = value
+                                defaults.setValue(value, forKey: "ns_keepOn")
+                                defaults.synchronize()
+                                print(value)
+                            }
                     }
                 }
             }
         }
     }
     
-    func idleTimerhandler() {
-        UIApplication.shared.isIdleTimerDisabled = keepOn
-    }
-    
     var body: some View {
-        idleTimerhandler()
-        
         return VStack {
             if !needsURL {
                 mainWebView
@@ -139,6 +135,8 @@ struct ContentView: View {
             }
         }.animation(.interactiveSpring())
         .onAppear(){
+            keepOn = defaults.bool(forKey: "ns_keepOn")
+            print(keepOn)
             nsURL = defaults.string(forKey: "ns_url") ?? nsURL
             print(nsURL)
         }
